@@ -14,7 +14,6 @@ from tkinter import *
 from token import COMMA
 from tokenize import String
 
-
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path(r"assets\frame0")
 def update_scroll_region():
@@ -66,9 +65,6 @@ def browse_button():
             text_widgets.append(entry_i)
             
         update_scroll_region()
-
-    print(len(folder_storage))
-
    
 def get_content(filename):
     with open(filename) as f:
@@ -88,6 +84,7 @@ window.geometry("1055x668")
 window.configure(bg = "#FFFFFF")
 window.title("Sentence Similarity Checker")
 
+# Background image of the window
 canvas = Canvas(
     window,
     bg = "#FFFFFF",
