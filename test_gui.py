@@ -11,6 +11,8 @@ list_compare_folder = []
 sentences_by_file_input = [] 
 sentences_by_file_compare = [] 
 list_color_hex = []
+list_similar_sentences = []
+color_map = []                          # 3D array to store the color of each sentence in each file
 similarity_level = 0
 
 OUTPUT_PATH = Path(__file__).parent
@@ -29,26 +31,21 @@ def random_hex_color():
     g = random.randint(0, 255)
     b = random.randint(0, 255)
     
-    # Convert them to hex format
-    r_hex = hex(r)[2:]
-    g_hex = hex(g)[2:]
-    b_hex = hex(b)[2:]
+    # Ensure at least one of the RGB components is less than 200 for contrast
+    if r > 200 and g > 200 and b > 200:
+        return random_hex_color()
+    
+    # Convert them to hex format and concatenate
+    hex_color = f'#{r:02x}{g:02x}{b:02x}'
 
-    # Add leading zeros if necessary
-    if len(r_hex) == 1:
-        r_hex = "0" + r_hex
-    if len(g_hex) == 1:
-        g_hex = "0" + g_hex
-    if len(b_hex) == 1:
-        b_hex = "0" + b_hex
-
-    # Return the hex color code as a string
+    # Ensure this color hasn't been picked before
     global list_color_hex
-    if "#" + r_hex + g_hex + b_hex in list_color_hex:
+    if hex_color in list_color_hex:
         return random_hex_color()
     else:
-        list_color_hex.append("#" + r_hex + g_hex + b_hex)
-    return "#" + r_hex + g_hex + b_hex
+        list_color_hex.append(hex_color)
+
+    return hex_color
 
 def draw_window(title, size, bg_color):
     window = tk.Tk()
@@ -67,6 +64,31 @@ def create_text_field_widget(parent, label_text):
 
 def update_folder_path_label(folder_path, label):
     label.config(text="Folder path: " + folder_path)
+
+def init_color_map():
+    global color_map
+    # index 0: input file, index 1: compare file
+    color_map.append([])
+    color_map.append([])
+    for i in range(len(list_input_folder)):
+        color_map[0].append([])
+        for j in range(len(sentences_by_file_input[i])):
+            color_map[0][i].append([])
+    for i in range(len(list_compare_folder)):
+        color_map[1].append([])
+        for j in range(len(sentences_by_file_compare[i])):
+            color_map[1][i].append([])
+
+    for i in range(len(list_similar_sentences)):
+        index_input, compare_file_number, index_compare = list_similar_sentences[i]
+        color_hex = color_map[0][0][index_input]
+        if color_hex == []:
+            color_hex = random_hex_color()
+            # Store the color in the color_map for both input and compare files
+            color_map[0][0][index_input] = color_hex
+            if color_map[1][compare_file_number][index_compare] == []:
+                color_map[1][compare_file_number][index_compare] = color_hex
+    
 
 def choose_folder(folder_path_label, is_compare_folder, callback=None):
     current_dir = os.getcwd()
@@ -108,9 +130,11 @@ def choose_folder(folder_path_label, is_compare_folder, callback=None):
     if callback:
         callback()
 
-def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
+def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent, list_similar_sentences=None, is_input=False):
     text_widgets = []
     parent.grid_columnconfigure(0, weight=1)  # Configure the column to expand
+
+    global color_map
 
     for i in range(len(list_folder)):
         entry_i = tk.Text(
@@ -127,19 +151,30 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
         
         # Define a tag for bold text
         entry_i.tag_configure("bold", font=("Arial", 10, "bold"))
-
-        color_hex = random_hex_color()
-
-        # Define a tag for colored text
-        entry_i.tag_configure("colored", foreground=color_hex)
         
         # Insert the file name with the bold tag
         file_name = f"File {list_folder[i]}:\n"
         entry_i.insert("end", file_name, "bold")
         
         # Insert the sentences normally
-        for sentence in sentences_by_file[i]:
-            entry_i.insert("end", sentence + '\n', "colored")
+        for j in range(len(sentences_by_file[i])):
+            tag_name = ''
+            if list_similar_sentences:
+                if is_input:
+                    color_hex = color_map[0][0][j]
+                    if color_hex == []:
+                        color_hex = "#000000"
+                    tag_name = f"colored00{j}"
+                else:
+                    color_hex = color_map[1][i][j]
+                    if color_hex == []:
+                        color_hex = "#000000"
+                    tag_name = f"colored1{i}{j}"
+                entry_i.tag_configure(tag_name, foreground=color_hex)
+                entry_i.insert("end", sentences_by_file[i][j], tag_name)
+            else:
+                entry_i.tag_configure('black', foreground="#000000")
+                entry_i.insert("end", sentences_by_file[i][j], "black")
         entry_i.insert("end", '\n')  # Add an extra empty line for separation
 
         # Update the height of the Text widget to fit its content
@@ -252,11 +287,15 @@ def main():
         global similarity_level, list_input_folder, list_compare_folder, sentences_by_file_input, sentences_by_file_compare
         similarity_level = similarity_input.get()
         res = algo.find_similar_sentences_in_files(list_input_folder, list_compare_folder, sentences_by_file_input[0], sentences_by_file_compare, float(similarity_level) / 100)
-        print(similarity_level)
-        for input_idx,file_idx,sentence_idx in res:
-            print(f"input_idx: {input_idx}")
-            print(f"file_idx: {file_idx}")
-            print(f"sentence_idx: {sentence_idx}")
+        global list_similar_sentences
+        list_similar_sentences = res
+        init_color_map()
+        for widget in scrollable_frame.winfo_children():
+            widget.destroy()
+        for widget in scrollable_frame2.winfo_children():
+            widget.destroy()
+        create_text_widgets_from_sentences(list_input_folder, sentences_by_file_input, scrollable_frame2, list_similar_sentences, True)
+        create_text_widgets_from_sentences(list_compare_folder, sentences_by_file_compare, scrollable_frame, list_similar_sentences)
 
     # Create and place the "Compare" button
     compare_button = create_button_widget(similarity_frame, "Compare", ("Arial", 12), "#FFFFFF", lambda: cal_similarity())
