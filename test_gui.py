@@ -3,13 +3,15 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 import re
+import random
+import algo
 
 list_input_folder = []
 list_compare_folder = []
 sentences_by_file_input = [] 
 sentences_by_file_compare = [] 
+list_color_hex = []
 similarity_level = 0
-
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path(r"assets\frame0")
@@ -20,6 +22,25 @@ def relative_to_assets(path: str) -> Path:
 def split_sentences(text):
     sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
     return sentences
+
+def random_hex_color():
+    # Generate three random numbers between 0 and 255
+    r = random.randint(0, 255)
+    g = random.randint(0, 255)
+    b = random.randint(0, 255)
+    
+    # Convert them to hex format
+    r_hex = hex(r)[2:]
+    g_hex = hex(g)[2:]
+    b_hex = hex(b)[2:]
+
+    # Return the hex color code as a string
+    global list_color_hex
+    if "#" + r_hex + g_hex + b_hex in list_color_hex:
+        return random_hex_color()
+    else:
+        list_color_hex.append("#" + r_hex + g_hex + b_hex)
+    return "#" + r_hex + g_hex + b_hex
 
 def draw_window(title, size, bg_color):
     window = tk.Tk()
