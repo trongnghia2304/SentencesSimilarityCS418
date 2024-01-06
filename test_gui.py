@@ -83,10 +83,7 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
     text_widgets = []
     parent.grid_columnconfigure(0, weight=1)  # Configure the column to expand
 
-    num_lines = max([len(sentences) for sentences in sentences_by_file])
-
     for i in range(len(list_folder)):
-
         entry_i = tk.Text(
             parent,
             bd=0,
@@ -95,20 +92,30 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
             highlightthickness=0,
             wrap='word',
             font=("Arial", 10),
-            height=num_lines,
+            height=5,  # Set a default minimum height
         )
         entry_i.grid(row=i, column=0, sticky='nsew')  # Sticky 'nsew' to expand in all directions
         
-        # Insert the file name and its sentences
-        entry_i.insert("end", f"File {list_folder[i]}:\n")
+        # Define a tag for bold text
+        entry_i.tag_configure("bold", font=("Arial", 10, "bold"))
+        
+        # Insert the file name with the bold tag
+        file_name = f"File {list_folder[i]}:\n"
+        entry_i.insert("end", file_name, "bold")
+        
+        # Insert the sentences normally
         for sentence in sentences_by_file[i]:
             entry_i.insert("end", sentence + '\n')
-        entry_i.insert("end", '\n')
+        entry_i.insert("end", '\n')  # Add an extra empty line for separation
+
+        # Update the height of the Text widget to fit its content
+        num_lines = int(entry_i.index('end-1c').split('.')[0])
+        entry_i.config(height=num_lines)
+
         entry_i.config(state=tk.DISABLED)  # Disable editing
         text_widgets.append(entry_i)
 
     return text_widgets
-
 
 def main():
     window = draw_window("Sentence Similarity Checker", "1055x668", "#FFFFFF")
@@ -121,9 +128,8 @@ def main():
     compare_frame = tk.Frame(window, bg="#FFFFFF")  # Frame for compare data
 
     # Configure grid layout weights
-    window.grid_rowconfigure(3, weight=1)  # Adjusted to allocate space for input_frame and compare_frame
-    window.grid_rowconfigure(4, weight=1)
-    window.grid_columnconfigure(0, weight=1)
+    window.grid_columnconfigure(0, weight=1)  # Configure the column to expand
+    window.grid_rowconfigure(5, weight=1)  # Configure the row to expand
 
     # Place the frames
     choose_compare_folder_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nw")
@@ -136,33 +142,64 @@ def main():
     compare_canvas = tk.Canvas(compare_frame, bg="#FFFFFF")
     compare_canvas.pack(side="left", fill="both", expand=True)
 
+    # Create scrollable canvas in input_frame
+    input_canvas = tk.Canvas(input_frame, bg="#FFFFFF")
+    input_canvas.pack(side="left", fill="both", expand=True)
+
     # Add scrollbar to the canvas in compare_frame
     scrollbar = tk.Scrollbar(compare_frame, orient="vertical", command=compare_canvas.yview)
     scrollbar.pack(side="right", fill="y")
 
+    # Add scrollbar to the canvas in input_frame
+    scrollbar2 = tk.Scrollbar(input_frame, orient="vertical", command=input_canvas.yview)
+    scrollbar2.pack(side="right", fill="y")
+
     # Configure the canvas in compare_frame
     compare_canvas.configure(yscrollcommand=scrollbar.set)
     scrollable_frame = tk.Frame(compare_canvas)
-    compare_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    compare_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw", width=1000)
 
-    def update_scrollregion():
-        compare_canvas.configure(scrollregion=compare_canvas.bbox("all"))
+    # Configure the canvas in input_frame
+    input_canvas.configure(yscrollcommand=scrollbar2.set)
+    scrollable_frame2 = tk.Frame(input_canvas)
+    input_canvas.create_window((0, 0), window=scrollable_frame2, anchor="nw", width=1000)
 
-    scrollable_frame.bind("<Configure>", lambda event: update_scrollregion())
+    def update_scrollregion(canvas):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+        canvas.itemconfig("window", width=canvas.winfo_width())
 
-    def create_compare_widgets():
-        """Callback to create text widgets in compare frame."""
-        for widget in scrollable_frame.winfo_children():
+    def on_folder_selected(input_folder):
+        if input_folder:
+            create_compare_widgets(scrollable_frame, list_input_folder, sentences_by_file_input)
+        else:
+            create_compare_widgets(scrollable_frame2, list_compare_folder, sentences_by_file_compare)
+
+    def create_compare_widgets(scroll_frame, list_folder, sentences_by_file):
+        for widget in scroll_frame.winfo_children():
             widget.destroy()
-        create_text_widgets_from_sentences(list_compare_folder, sentences_by_file_compare, scrollable_frame)
+        create_text_widgets_from_sentences(list_folder, sentences_by_file, scroll_frame)
 
-    # Create and place the "Choose compare folder" button
-    choose_compare_folder_button = create_button_widget(choose_compare_folder_frame, "Choose compare folder", ("Arial", 12), "#FFFFFF", lambda: choose_folder(folder_path_label, False, create_compare_widgets))
+    # Adjust the lambda to pass the function reference
+    choose_compare_folder_button = create_button_widget(
+        choose_compare_folder_frame,
+        "Choose compare folder",
+        ("Arial", 12),
+        "#FFFFFF",
+        lambda: choose_folder(folder_path_label, False, lambda: on_folder_selected(False))
+    )
     choose_compare_folder_button.grid(row=0, column=0, padx=10, pady=10, sticky="nw")
 
-    # Create and place the "Choose input folder" button
-    choose_input_folder_button = create_button_widget(choose_input_folder_frame, "Choose input folder", ("Arial", 12), "#FFFFFF", lambda: choose_folder(input_folder_path_label, True))
+    choose_input_folder_button = create_button_widget(
+        choose_input_folder_frame,
+        "Choose input folder",
+        ("Arial", 12),
+        "#FFFFFF",
+        lambda: choose_folder(input_folder_path_label, True, lambda: on_folder_selected(True))
+    )
     choose_input_folder_button.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
+
+    scrollable_frame.bind("<Configure>", lambda event: update_scrollregion(compare_canvas))
+    scrollable_frame2.bind("<Configure>", lambda event: update_scrollregion(input_canvas))
 
     # Label to display the compare folder path
     folder_path_label = tk.Label(choose_compare_folder_frame, text="Folder path: No folder selected", font=("Arial", 10), bg="#FFFFFF")
@@ -185,3 +222,20 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+    # def create_compare_widgets(list_folder, sentences_by_file, scroll_frame):
+    #     """Callback to create text widgets in compare frame."""
+    #     print('Create ')
+    #     for widget in scroll_frame.winfo_children():
+    #         widget.destroy()
+    #     create_text_widgets_from_sentences(list_folder, sentences_by_file, scroll_frame)
+
+    # # Create and place the "Choose compare folder" button
+    # choose_compare_folder_button = create_button_widget(choose_compare_folder_frame, "Choose compare folder", ("Arial", 12), "#FFFFFF", lambda: choose_folder(folder_path_label, False, create_compare_widgets(list_compare_folder, sentences_by_file_compare, scrollable_frame)))
+    # choose_compare_folder_button.grid(row=0, column=0, padx=10, pady=10, sticky="nw")
+
+    # # Create and place the "Choose input folder" button
+    # choose_input_folder_button = create_button_widget(choose_input_folder_frame, "Choose input folder", ("Arial", 12), "#FFFFFF", lambda: choose_folder(input_folder_path_label, True, create_compare_widgets(list_input_folder, sentences_by_file_input, scrollable_frame2)))
+    # choose_input_folder_button.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
