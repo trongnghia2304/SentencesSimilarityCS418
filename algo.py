@@ -11,18 +11,25 @@ def split_sentences(text):
 
 def calculate_similarity_scores(model, input_sentences, sentences_to_compare):
     global precalculated_embeddings
-    
+
     input_sentences_tuple = tuple(input_sentences)
-    
+
     if input_sentences_tuple in precalculated_embeddings:
         input_embeddings = precalculated_embeddings[input_sentences_tuple]
     else:
         input_embeddings = model.encode(input_sentences, convert_to_tensor=True)
         precalculated_embeddings[input_sentences_tuple] = input_embeddings
     
-    sentence_embeddings = model.encode(sentences_to_compare, convert_to_tensor=True)
-    similarity_scores = util.pytorch_cos_sim(input_embeddings, sentence_embeddings)
+    sentences_to_compare_tuple = tuple(sentences_to_compare)
     
+    if sentences_to_compare_tuple in precalculated_embeddings:
+        sentence_embeddings = precalculated_embeddings[sentences_to_compare_tuple]
+    else:
+        sentence_embeddings = model.encode(sentences_to_compare, convert_to_tensor=True)
+        precalculated_embeddings[sentences_to_compare_tuple] = sentence_embeddings
+
+    similarity_scores = util.pytorch_cos_sim(input_embeddings, sentence_embeddings)
+
     return similarity_scores
 
 def find_similar_sentences_in_files(list_input, list_compare, sentences_input, sentences_compare, similarity_threshold=0.8):
