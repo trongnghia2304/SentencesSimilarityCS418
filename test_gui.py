@@ -118,7 +118,7 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
     return text_widgets
 
 def main():
-    window = draw_window("Sentence Similarity Checker", "1055x668", "#FFFFFF")
+    window = draw_window("Sentence Similarity Checker", "1055x830", "#FFFFFF")
 
     # Create the frames
     choose_compare_folder_frame = tk.Frame(window, bg="#FFFFFF")
