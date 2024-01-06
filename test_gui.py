@@ -88,7 +88,9 @@ def init_color_map():
             color_map[0][0][index_input] = color_hex
             if color_map[1][compare_file_number][index_compare] == []:
                 color_map[1][compare_file_number][index_compare] = color_hex
-    
+        else:
+            if color_map[1][compare_file_number][index_compare] == []:
+                color_map[1][compare_file_number][index_compare] = color_hex
 
 def choose_folder(folder_path_label, is_compare_folder, callback=None):
     current_dir = os.getcwd()
