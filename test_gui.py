@@ -83,14 +83,19 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
     text_widgets = []
     parent.grid_columnconfigure(0, weight=1)  # Configure the column to expand
 
+    num_lines = max([len(sentences) for sentences in sentences_by_file])
+
     for i in range(len(list_folder)):
+
         entry_i = tk.Text(
             parent,
             bd=0,
             bg="#FFFFFF",
             fg="#000716",
             highlightthickness=0,
-            wrap='none',
+            wrap='word',
+            font=("Arial", 10),
+            height=num_lines,
         )
         entry_i.grid(row=i, column=0, sticky='nsew')  # Sticky 'nsew' to expand in all directions
         
@@ -98,7 +103,8 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
         entry_i.insert("end", f"File {list_folder[i]}:\n")
         for sentence in sentences_by_file[i]:
             entry_i.insert("end", sentence + '\n')
-        entry_i.config(state=tk.DISABLED)
+        entry_i.insert("end", '\n')
+        entry_i.config(state=tk.DISABLED)  # Disable editing
         text_widgets.append(entry_i)
 
     return text_widgets
@@ -130,9 +136,11 @@ def main():
     compare_canvas = tk.Canvas(compare_frame, bg="#FFFFFF")
     compare_canvas.pack(side="left", fill="both", expand=True)
 
+    # Add scrollbar to the canvas in compare_frame
     scrollbar = tk.Scrollbar(compare_frame, orient="vertical", command=compare_canvas.yview)
     scrollbar.pack(side="right", fill="y")
 
+    # Configure the canvas in compare_frame
     compare_canvas.configure(yscrollcommand=scrollbar.set)
     scrollable_frame = tk.Frame(compare_canvas)
     compare_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
