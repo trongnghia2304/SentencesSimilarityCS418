@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer, util
+from transformers import AutoModel
 import os
 import re
 
@@ -34,7 +35,8 @@ def find_similar_sentences_in_files(input_text, directory_path, similarity_thres
         print(f"The directory '{directory_path}' does not exist.")
         return
 
-    model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+    # model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+    model = SentenceTransformer('sentence-transformers_paraphrase-multilingual-mpnet-base-v2')
 
     with open(input_text, 'r', encoding='utf-8') as file:
         input_text_content = file.read()
