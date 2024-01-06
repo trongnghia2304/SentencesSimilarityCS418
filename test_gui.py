@@ -79,7 +79,7 @@ def choose_folder(folder_path_label, is_input_folder, callback=None):
     if callback:
         callback()
 
-def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
+def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent, color_hex = "#FF0000"):
     text_widgets = []
     parent.grid_columnconfigure(0, weight=1)  # Configure the column to expand
 
@@ -98,6 +98,9 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
         
         # Define a tag for bold text
         entry_i.tag_configure("bold", font=("Arial", 10, "bold"))
+
+        # Define a tag for colored text
+        entry_i.tag_configure("colored", foreground=color_hex)
         
         # Insert the file name with the bold tag
         file_name = f"File {list_folder[i]}:\n"
@@ -105,7 +108,7 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
         
         # Insert the sentences normally
         for sentence in sentences_by_file[i]:
-            entry_i.insert("end", sentence + '\n')
+            entry_i.insert("end", sentence + '\n', "colored")
         entry_i.insert("end", '\n')  # Add an extra empty line for separation
 
         # Update the height of the Text widget to fit its content
@@ -168,21 +171,21 @@ def main():
         canvas.configure(scrollregion=canvas.bbox("all"))
         canvas.itemconfig("window", width=canvas.winfo_width())
 
-    def on_folder_selected(input_folder):
-        if input_folder:
-            create_compare_widgets(scrollable_frame, list_input_folder, sentences_by_file_input)
+    def on_folder_selected(compare_folder):
+        if compare_folder:
+            create_compare_widgets(scrollable_frame, list_input_folder, sentences_by_file_input, "#000000")
         else:
             create_compare_widgets(scrollable_frame2, list_compare_folder, sentences_by_file_compare)
 
-    def create_compare_widgets(scroll_frame, list_folder, sentences_by_file):
+    def create_compare_widgets(scroll_frame, list_folder, sentences_by_file, color_hex = "#FF0000"):
         for widget in scroll_frame.winfo_children():
             widget.destroy()
-        create_text_widgets_from_sentences(list_folder, sentences_by_file, scroll_frame)
+        create_text_widgets_from_sentences(list_folder, sentences_by_file, scroll_frame, color_hex)
 
     # Adjust the lambda to pass the function reference
     choose_compare_folder_button = create_button_widget(
         choose_compare_folder_frame,
-        "Choose compare folder",
+        "Choose input folder",
         ("Arial", 12),
         "#FFFFFF",
         lambda: choose_folder(folder_path_label, False, lambda: on_folder_selected(False))
@@ -191,7 +194,7 @@ def main():
 
     choose_input_folder_button = create_button_widget(
         choose_input_folder_frame,
-        "Choose input folder",
+        "Choose compare folder",
         ("Arial", 12),
         "#FFFFFF",
         lambda: choose_folder(input_folder_path_label, True, lambda: on_folder_selected(True))
@@ -222,20 +225,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-    # def create_compare_widgets(list_folder, sentences_by_file, scroll_frame):
-    #     """Callback to create text widgets in compare frame."""
-    #     print('Create ')
-    #     for widget in scroll_frame.winfo_children():
-    #         widget.destroy()
-    #     create_text_widgets_from_sentences(list_folder, sentences_by_file, scroll_frame)
-
-    # # Create and place the "Choose compare folder" button
-    # choose_compare_folder_button = create_button_widget(choose_compare_folder_frame, "Choose compare folder", ("Arial", 12), "#FFFFFF", lambda: choose_folder(folder_path_label, False, create_compare_widgets(list_compare_folder, sentences_by_file_compare, scrollable_frame)))
-    # choose_compare_folder_button.grid(row=0, column=0, padx=10, pady=10, sticky="nw")
-
-    # # Create and place the "Choose input folder" button
-    # choose_input_folder_button = create_button_widget(choose_input_folder_frame, "Choose input folder", ("Arial", 12), "#FFFFFF", lambda: choose_folder(input_folder_path_label, True, create_compare_widgets(list_input_folder, sentences_by_file_input, scrollable_frame2)))
-    # choose_input_folder_button.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
