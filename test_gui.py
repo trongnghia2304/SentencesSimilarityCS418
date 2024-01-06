@@ -34,6 +34,14 @@ def random_hex_color():
     g_hex = hex(g)[2:]
     b_hex = hex(b)[2:]
 
+    # Add leading zeros if necessary
+    if len(r_hex) == 1:
+        r_hex = "0" + r_hex
+    if len(g_hex) == 1:
+        g_hex = "0" + g_hex
+    if len(b_hex) == 1:
+        b_hex = "0" + b_hex
+
     # Return the hex color code as a string
     global list_color_hex
     if "#" + r_hex + g_hex + b_hex in list_color_hex:
@@ -60,7 +68,7 @@ def create_text_field_widget(parent, label_text):
 def update_folder_path_label(folder_path, label):
     label.config(text="Folder path: " + folder_path)
 
-def choose_folder(folder_path_label, is_input_folder, callback=None):
+def choose_folder(folder_path_label, is_compare_folder, callback=None):
     current_dir = os.getcwd()
     foldername = filedialog.askdirectory(
         initialdir=current_dir,
@@ -88,7 +96,7 @@ def choose_folder(folder_path_label, is_input_folder, callback=None):
     for content in contents_data:
         sentences_by_file.append(split_sentences(content))
 
-    if is_input_folder:
+    if not is_compare_folder:
         global list_input_folder, sentences_by_file_input
         list_input_folder = list_folder
         sentences_by_file_input = sentences_by_file
@@ -100,7 +108,7 @@ def choose_folder(folder_path_label, is_input_folder, callback=None):
     if callback:
         callback()
 
-def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent, color_hex = "#FF0000"):
+def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent):
     text_widgets = []
     parent.grid_columnconfigure(0, weight=1)  # Configure the column to expand
 
@@ -119,6 +127,8 @@ def create_text_widgets_from_sentences(list_folder, sentences_by_file, parent, c
         
         # Define a tag for bold text
         entry_i.tag_configure("bold", font=("Arial", 10, "bold"))
+
+        color_hex = random_hex_color()
 
         # Define a tag for colored text
         entry_i.tag_configure("colored", foreground=color_hex)
@@ -156,8 +166,8 @@ def main():
     window.grid_rowconfigure(5, weight=1)  # Configure the row to expand
 
     # Place the frames
-    choose_compare_folder_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nw")
-    choose_input_folder_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
+    choose_compare_folder_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
+    choose_input_folder_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nw")
     similarity_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nw")
     input_frame.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")  # Place input_frame
     compare_frame.grid(row=4, column=0, padx=10, pady=10, sticky="nsew")  # Place compare_frame
@@ -194,31 +204,31 @@ def main():
 
     def on_folder_selected(compare_folder):
         if compare_folder:
-            create_compare_widgets(scrollable_frame, list_input_folder, sentences_by_file_input, "#000000")
+            create_compare_widgets(scrollable_frame, list_compare_folder, sentences_by_file_compare)
         else:
-            create_compare_widgets(scrollable_frame2, list_compare_folder, sentences_by_file_compare)
+            create_compare_widgets(scrollable_frame2, list_input_folder, sentences_by_file_input)
 
-    def create_compare_widgets(scroll_frame, list_folder, sentences_by_file, color_hex = "#FF0000"):
+    def create_compare_widgets(scroll_frame, list_folder, sentences_by_file):
         for widget in scroll_frame.winfo_children():
             widget.destroy()
-        create_text_widgets_from_sentences(list_folder, sentences_by_file, scroll_frame, color_hex)
+        create_text_widgets_from_sentences(list_folder, sentences_by_file, scroll_frame)
 
     # Adjust the lambda to pass the function reference
     choose_compare_folder_button = create_button_widget(
         choose_compare_folder_frame,
-        "Choose input folder",
+        "Choose compare folder",
         ("Arial", 12),
         "#FFFFFF",
-        lambda: choose_folder(folder_path_label, False, lambda: on_folder_selected(False))
+        lambda: choose_folder(folder_path_label, True, lambda: on_folder_selected(True))
     )
     choose_compare_folder_button.grid(row=0, column=0, padx=10, pady=10, sticky="nw")
 
     choose_input_folder_button = create_button_widget(
         choose_input_folder_frame,
-        "Choose compare folder",
+        "Choose input folder",
         ("Arial", 12),
         "#FFFFFF",
-        lambda: choose_folder(input_folder_path_label, True, lambda: on_folder_selected(True))
+        lambda: choose_folder(input_folder_path_label, False, lambda: on_folder_selected(False))
     )
     choose_input_folder_button.grid(row=1, column=0, padx=10, pady=10, sticky="nw")
 
@@ -238,8 +248,18 @@ def main():
     similarity_label.grid(row=1, column=0, padx=10, pady=2, sticky="nw")
     similarity_input.grid(row=1, column=1, padx=10, pady=2, sticky="nw")        # To get the input value, use similarity_input.get()
 
+    def cal_similarity():
+        global similarity_level, list_input_folder, list_compare_folder, sentences_by_file_input, sentences_by_file_compare
+        similarity_level = similarity_input.get()
+        res = algo.find_similar_sentences_in_files(list_input_folder, list_compare_folder, sentences_by_file_input[0], sentences_by_file_compare, float(similarity_level) / 100)
+        print(similarity_level)
+        for input_idx,file_idx,sentence_idx in res:
+            print(f"input_idx: {input_idx}")
+            print(f"file_idx: {file_idx}")
+            print(f"sentence_idx: {sentence_idx}")
+
     # Create and place the "Compare" button
-    compare_button = create_button_widget(similarity_frame, "Compare", ("Arial", 12), "#FFFFFF", lambda: print(similarity_input.get()))
+    compare_button = create_button_widget(similarity_frame, "Compare", ("Arial", 12), "#FFFFFF", lambda: cal_similarity())
     compare_button.grid(row=2, column=0, padx=10, pady=10, sticky="nw")
 
     window.mainloop()
