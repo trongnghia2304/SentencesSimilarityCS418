@@ -5,9 +5,11 @@ import re
 
 precalculated_embeddings = {}
 
+
 def split_sentences(text):
     sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
     return sentences
+
 
 def calculate_similarity_scores(model, input_sentences, sentences_to_compare):
     global precalculated_embeddings
@@ -17,36 +19,44 @@ def calculate_similarity_scores(model, input_sentences, sentences_to_compare):
     if input_sentences_tuple in precalculated_embeddings:
         input_embeddings = precalculated_embeddings[input_sentences_tuple]
     else:
-        input_embeddings = model.encode(input_sentences, convert_to_tensor=True)
+        input_embeddings = model.encode(
+            input_sentences, convert_to_tensor=True)
         precalculated_embeddings[input_sentences_tuple] = input_embeddings
-    
+
     sentences_to_compare_tuple = tuple(sentences_to_compare)
-    
+
     if sentences_to_compare_tuple in precalculated_embeddings:
         sentence_embeddings = precalculated_embeddings[sentences_to_compare_tuple]
     else:
-        sentence_embeddings = model.encode(sentences_to_compare, convert_to_tensor=True)
+        sentence_embeddings = model.encode(
+            sentences_to_compare, convert_to_tensor=True)
         precalculated_embeddings[sentences_to_compare_tuple] = sentence_embeddings
 
-    similarity_scores = util.pytorch_cos_sim(input_embeddings, sentence_embeddings)
+    similarity_scores = util.pytorch_cos_sim(
+        input_embeddings, sentence_embeddings)
 
     return similarity_scores
 
+
 def find_similar_sentences_in_files(list_input, list_compare, sentences_input, sentences_compare, similarity_threshold=0.8):
-    model = SentenceTransformer('sentence-transformers_paraphrase-multilingual-mpnet-base-v2')
+    model = SentenceTransformer(
+        'sentence-transformers_paraphrase-multilingual-mpnet-base-v2')
 
     similar_files = []
-    for i in range(len(list_compare)):
-        similarity_scores = calculate_similarity_scores(model, sentences_input, sentences_compare[i])
-        max_similarities = similarity_scores.max(dim=1)
+    for j in range(len(list_input)):
+        for i in range(len(list_compare)):
+            similarity_scores = calculate_similarity_scores(
+                model, sentences_input[j], sentences_compare[i])
+            max_similarities = similarity_scores.max(dim=1)
 
-        for idx, max_similarity in enumerate(max_similarities.values):
-            if max_similarity > similarity_threshold:
-                similar_files.append((
-                    idx,
-                    i,
-                    max_similarities.indices[idx]
-                ))
+            for idx, max_similarity in enumerate(max_similarities.values):
+                if max_similarity > similarity_threshold:
+                    similar_files.append((
+                        j,
+                        idx,
+                        i,
+                        max_similarities.indices[idx]
+                    ))
 
     return similar_files
 
@@ -84,7 +94,7 @@ def find_similar_sentences_in_files(list_input, list_compare, sentences_input, s
 #                         max_similarities.indices[idx]
 
 #                         # filename,
-                        
+
 #                         # input_sentences[idx].strip(),
 #                         # sentences_to_compare[max_similarities.indices[idx]].strip(),
 #                         # max_similarity.item()
@@ -92,23 +102,26 @@ def find_similar_sentences_in_files(list_input, list_compare, sentences_input, s
 
 #     return similar_files
 
-def main(): 
+
+def main():
     # Replace 'input_text.txt' with the path to your uploaded input text file
     input_text_file = './bbc.txt'
 
 # Replace 'folder_path' with the path to the uploaded directory containing your .txt files
     folder_path = './data/data/folder1/'
 
-    similar_sentences = find_similar_sentences_in_files(input_text_file, folder_path)
+    similar_sentences = find_similar_sentences_in_files(
+        input_text_file, folder_path)
 
     if similar_sentences:
         print("Files with similar sentences:")
-        for input_idx,file_idx,sentence_idx in similar_sentences:
+        for input_idx, file_idx, sentence_idx in similar_sentences:
             print(f"input_idx: {input_idx}")
             print(f"file_idx: {file_idx}")
             print(f"sentence_idx: {sentence_idx}")
     else:
         print("No similar sentences found.")
+
 
 if __name__ == '__main__':
     main()
